@@ -65,7 +65,7 @@ resource "yandex_compute_instance_group" "lamp-group" {
     max_expansion   = 1
   }
 
-  health_check {
+  health_check {  # проверка
     http_options {
       port = 80
       path = "/"
