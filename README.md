@@ -167,6 +167,64 @@ resource "yandex_compute_instance_group" "lamp-group" {
  - Проверить работоспособность, удалив одну или несколько ВМ.
 4. (дополнительно)* Создать Application Load Balancer с использованием Instance group и проверкой состояния.
 
+load-balancer.tf
+```
+# Target Group: создаём entry с адресами всех инстансов из группы
+resource "yandex_lb_target_group" "lamp_tg" {
+  name      = "lamp-tg"
+  folder_id = var.folder_id
+
+  dynamic "target" {
+    for_each = yandex_compute_instance_group.lamp-group.instances
+    content {
+      subnet_id = module.vpc-dev.subnet_id
+      address   = target.value.network_interface[0].ip_address
+    }
+  }
+
+}
+
+# Network Load Balancer
+resource "yandex_lb_network_load_balancer" "nlb" {
+  name = "lamp-nlb"
+
+  listener {
+    name = "http-listener"
+    port = 80
+    external_address_spec {}
+  }
+
+  attached_target_group {
+    target_group_id = yandex_lb_target_group.lamp_tg.id
+
+    healthcheck {
+      name = "http"
+      http_options {
+        port = 80
+        path = "/"
+      }
+    }
+  }
+}
+
+```
+
+<img width="926" height="320" alt="image" src="https://github.com/user-attachments/assets/44772f6b-9295-4601-8a24-7ff85e8f7d97" />
+<img width="496" height="399" alt="image" src="https://github.com/user-attachments/assets/11b247f9-fc09-4123-9fb3-cc928a8a11f9" />
+
+
+Остановили 2 ВМ:
+
+<img width="1814" height="386" alt="image" src="https://github.com/user-attachments/assets/5c6ef1d9-84ab-4a39-a9b0-0a5e13627189" />
+<img width="709" height="1161" alt="image" src="https://github.com/user-attachments/assets/7cb6861e-5a3c-4eee-9c0f-27b9bbe706e7" />
+
+Сайт доступен
+
+<img width="514" height="435" alt="image" src="https://github.com/user-attachments/assets/111d229f-871c-4fcb-b863-351d22fdc53c" />
+
+
+
+
 Полезные документы:
 
 - [Compute instance group](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/compute_instance_group).
